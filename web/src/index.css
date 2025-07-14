@@ -119,4 +119,22 @@
     border-color: hsl(var(--primary));
     transform: scale(1.02);
   }
+  
+  /* Custom focus styles - remove ugly borders while maintaining accessibility */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    background-color: hsl(var(--muted) / 0.3);
+  }
+  
+  /* For buttons, only remove the ugly ring but keep background intact */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    /* Don't override background or opacity for buttons */
+  }
 }
