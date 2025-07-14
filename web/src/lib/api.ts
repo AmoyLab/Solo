@@ -8,6 +8,7 @@ export interface CreateTaskRequest {
   status?: TaskStatus;
   assignee?: string;
   tags?: string[];
+  projectId?: string;
 }
 
 export interface UpdateTaskRequest {
@@ -27,6 +28,7 @@ export interface ApiTask {
   tags: string[];
   created_at: string;
   updated_at: string;
+  project_id?: string;
 }
 
 export interface TaskListResponse {
@@ -46,19 +48,21 @@ function transformApiTask(apiTask: ApiTask): Task {
     tags: apiTask.tags || [],
     createdAt: new Date(apiTask.created_at),
     updatedAt: new Date(apiTask.updated_at),
+    projectId: apiTask.project_id,
   };
 }
 
-// Transform frontend task to API request
-function transformToApiRequest(task: Partial<Task>): CreateTaskRequest | UpdateTaskRequest {
-  return {
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    assignee: task.assignee,
-    tags: task.tags,
-  };
-}
+// Transform frontend task to API request (currently unused but might be needed later)
+// function transformToApiRequest(task: Partial<Task>): CreateTaskRequest | UpdateTaskRequest {
+//   return {
+//     title: task.title,
+//     description: task.description,
+//     status: task.status,
+//     assignee: task.assignee,
+//     tags: task.tags,
+//     projectId: task.projectId,
+//   };
+// }
 
 export const taskApi = {
   async getTasks(): Promise<Task[]> {

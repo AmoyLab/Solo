@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { TaskModal } from '@/components/TaskModal';
 import { TaskDetailsDrawer } from '@/components/TaskDetailsDrawer';
 import { DeleteTaskDialog } from '@/components/DeleteTaskDialog';
+import { ProjectSelector } from '@/components/ProjectSelector';
 import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useTasks';
 import { haptics } from '@/lib/haptics';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ArrowLeft } from 'lucide-react';
 import type { Task } from '@/types/task';
+import type { Project } from '@/types/project';
+
+const SELECTED_PROJECT_KEY = 'kanban-selected-project';
 
 function App() {
-  const { tasks, loading, error, handleDragEnd, addTask, updateTask, deleteTask } = useTasks();
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const { tasks, loading, error, handleDragEnd, addTask, updateTask, deleteTask } = useTasks(selectedProject?.id);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -18,6 +23,25 @@ function App() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+
+  // Load selected project from localStorage on mount
+  useEffect(() => {
+    const storedProjectId = localStorage.getItem(SELECTED_PROJECT_KEY);
+    if (storedProjectId) {
+      // In a real app, you would fetch the project details from an API
+      // For now, we'll just clear the stored project and let the user select again
+      localStorage.removeItem(SELECTED_PROJECT_KEY);
+    }
+  }, []);
+
+  // Save selected project to localStorage when it changes
+  useEffect(() => {
+    if (selectedProject) {
+      localStorage.setItem(SELECTED_PROJECT_KEY, selectedProject.id);
+    } else {
+      localStorage.removeItem(SELECTED_PROJECT_KEY);
+    }
+  }, [selectedProject]);
 
   const handleEditTask = (task: Task) => {
     haptics.light();
@@ -96,6 +120,18 @@ function App() {
     handleDeleteTask(task);
   };
 
+  // Show project selector if no project is selected
+  if (!selectedProject) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ProjectSelector 
+          selectedProjectId={null}
+          onProjectSelect={setSelectedProject}
+        />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -126,11 +162,22 @@ function App() {
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Kanban Board</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage your tasks with drag and drop
-              </p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedProject(null)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Projects
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">{selectedProject.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {selectedProject.directory}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               {/* Search */}
@@ -170,7 +217,7 @@ function App() {
       <TaskModal
         open={showTaskModal}
         onOpenChange={handleModalClose}
-        task={editingTask}
+        task={editingTask || undefined}
         onSubmit={handleTaskSubmit}
       />
 
@@ -178,7 +225,7 @@ function App() {
       <TaskDetailsDrawer
         open={showDetailsDrawer}
         onOpenChange={handleDrawerClose}
-        task={selectedTask}
+        task={selectedTask || undefined}
         onEdit={handleEditFromDrawer}
         onDelete={handleDeleteFromDrawer}
       />

@@ -13,4 +13,5 @@ export interface Task {
   updatedAt: Date;
   dueDate?: Date;
   tags?: string[];
+  projectId?: string;
 }
