@@ -1,0 +1,22 @@
+# Server configuration
+server:
+  host: "${SERVER_HOST:localhost}"
+  port: ${SERVER_PORT:8080}
+
+# Database configuration
+database:
+  type: "${DATABASE_TYPE:sqlite}"
+  dsn: "${DATABASE_DSN:./solo.db}"
+  db_name: "${DATABASE_NAME:solo}"
+
+# Logger configuration
+logger:
+  level: "${LOGGER_LEVEL:info}"
+  format: "${LOGGER_FORMAT:console}"
+  output: "${LOGGER_OUTPUT:stdout}"
+  file_path: "${LOGGER_FILE_PATH:./logs/app.log}"
+  max_size: ${LOGGER_MAX_SIZE:100}
+  max_backups: ${LOGGER_MAX_BACKUPS:3}
+  max_age: ${LOGGER_MAX_AGE:7}
+  compress: ${LOGGER_COMPRESS:true}
+  color: ${LOGGER_COLOR:true}

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import { TaskModal } from '@/components/TaskModal';
+import { TaskDetailsDrawer } from '@/components/TaskDetailsDrawer';
+import { DeleteTaskDialog } from '@/components/DeleteTaskDialog';
 import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useTasks';
 import { haptics } from '@/lib/haptics';
@@ -7,25 +10,115 @@ import { Search, Plus } from 'lucide-react';
 import type { Task } from '@/types/task';
 
 function App() {
-  const { tasks, handleDragEnd } = useTasks();
+  const { tasks, loading, error, handleDragEnd, addTask, updateTask, deleteTask } = useTasks();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   const handleEditTask = (task: Task) => {
-    console.log('Edit task:', task);
-    // TODO: Implement task editing modal/form
+    haptics.light();
+    setEditingTask(task);
+    setShowTaskModal(true);
   };
 
+  const handleDeleteTask = (task: Task) => {
+    haptics.light();
+    setTaskToDelete(task);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (taskToDelete) {
+      haptics.medium();
+      await deleteTask(taskToDelete.id);
+      setTaskToDelete(null);
+    }
+  };
 
   const handleViewTaskDetails = (task: Task) => {
-    console.log('View task details:', task);
-    // TODO: Implement task details modal/panel
+    haptics.light();
+    setSelectedTask(task);
+    setShowDetailsDrawer(true);
   };
 
   const handleAddTask = () => {
     haptics.medium();
-    console.log('Add new task');
-    // TODO: Implement add task modal/form
+    setEditingTask(null);
+    setShowTaskModal(true);
   };
+
+  const handleTaskSubmit = async (taskData: {
+    title: string;
+    description?: string;
+    status: 'todo' | 'inprogress' | 'inreview' | 'done' | 'cancelled';
+    assignee?: string;
+    tags?: string[];
+  }) => {
+    if (editingTask) {
+      // Update existing task
+      await updateTask(editingTask.id, {
+        ...taskData,
+        priority: editingTask.priority, // Keep existing priority
+      });
+    } else {
+      // Add new task
+      await addTask({
+        ...taskData,
+        priority: 'medium', // Default priority
+      });
+    }
+  };
+
+  const handleModalClose = (open: boolean) => {
+    setShowTaskModal(open);
+    if (!open) {
+      setEditingTask(null);
+    }
+  };
+
+  const handleDrawerClose = (open: boolean) => {
+    setShowDetailsDrawer(open);
+    if (!open) {
+      setSelectedTask(null);
+    }
+  };
+
+  const handleEditFromDrawer = (task: Task) => {
+    setEditingTask(task);
+    setShowTaskModal(true);
+  };
+
+  const handleDeleteFromDrawer = (task: Task) => {
+    handleDeleteTask(task);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Error: {error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,9 +161,35 @@ function App() {
           searchQuery={searchQuery}
           onDragEnd={handleDragEnd}
           onEditTask={handleEditTask}
+          onDeleteTask={handleDeleteTask}
           onViewTaskDetails={handleViewTaskDetails}
         />
       </main>
+
+      {/* Task Modal (Add/Edit) */}
+      <TaskModal
+        open={showTaskModal}
+        onOpenChange={handleModalClose}
+        task={editingTask}
+        onSubmit={handleTaskSubmit}
+      />
+
+      {/* Task Details Drawer */}
+      <TaskDetailsDrawer
+        open={showDetailsDrawer}
+        onOpenChange={handleDrawerClose}
+        task={selectedTask}
+        onEdit={handleEditFromDrawer}
+        onDelete={handleDeleteFromDrawer}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteTaskDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        task={taskToDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ interface KanbanBoardProps {
   searchQuery?: string;
   onDragEnd: (event: DragEndEvent) => void;
   onEditTask: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
   onViewTaskDetails: (task: Task) => void;
 }
 
@@ -47,6 +48,7 @@ export function KanbanBoard({
   searchQuery = '',
   onDragEnd,
   onEditTask,
+  onDeleteTask,
   onViewTaskDetails,
 }: KanbanBoardProps) {
   // Memoize filtered tasks
@@ -121,6 +123,7 @@ export function KanbanBoard({
                       <TaskCard
                         task={task}
                         onEdit={onEditTask}
+                        onDelete={onDeleteTask}
                         onViewDetails={onViewTaskDetails}
                       />
                     </KanbanCard>

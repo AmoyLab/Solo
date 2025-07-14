@@ -1,74 +1,34 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { Task, TaskStatus } from '@/types/task';
 import type { DragEndEvent } from '@dnd-kit/core';
-
-// Mock data for demonstration
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Design system setup',
-    description: 'Create a comprehensive design system for the application',
-    status: 'todo',
-    priority: 'high',
-    assignee: 'Alice',
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-01'),
-    dueDate: new Date('2025-01-15'),
-    tags: ['design', 'ui/ux'],
-  },
-  {
-    id: '2',
-    title: 'API integration',
-    description: 'Integrate with the backend API endpoints',
-    status: 'inprogress',
-    priority: 'medium',
-    assignee: 'Bob',
-    createdAt: new Date('2025-01-02'),
-    updatedAt: new Date('2025-01-05'),
-    dueDate: new Date('2025-01-20'),
-    tags: ['backend', 'api'],
-  },
-  {
-    id: '3',
-    title: 'Unit tests',
-    description: 'Write comprehensive unit tests for components',
-    status: 'inreview',
-    priority: 'medium',
-    assignee: 'Charlie',
-    createdAt: new Date('2025-01-03'),
-    updatedAt: new Date('2025-01-07'),
-    tags: ['testing'],
-  },
-  {
-    id: '4',
-    title: 'Documentation',
-    description: 'Update project documentation',
-    status: 'done',
-    priority: 'low',
-    assignee: 'Diana',
-    createdAt: new Date('2025-01-04'),
-    updatedAt: new Date('2025-01-08'),
-    tags: ['docs'],
-  },
-  {
-    id: '5',
-    title: 'Performance optimization',
-    description: 'Optimize application performance',
-    status: 'todo',
-    priority: 'urgent',
-    assignee: 'Eve',
-    createdAt: new Date('2025-01-05'),
-    updatedAt: new Date('2025-01-05'),
-    dueDate: new Date('2025-01-12'),
-    tags: ['performance', 'optimization'],
-  },
-];
+import { taskApi } from '@/lib/api';
 
 export function useTasks() {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  // Load tasks from API
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const fetchedTasks = await taskApi.getTasks();
+      setTasks(fetchedTasks);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load tasks on component mount
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) return;
@@ -93,6 +53,8 @@ export function useTasks() {
     // If we're dropping on a container (status column), move the task there
     if (['todo', 'inprogress', 'inreview', 'done', 'cancelled'].includes(overId)) {
       const newStatus = overId as TaskStatus;
+      
+      // Optimistically update UI
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === activeId
@@ -100,12 +62,27 @@ export function useTasks() {
             : task
         )
       );
+
+      // Update via API
+      try {
+        await taskApi.updateTask(activeId, { status: newStatus });
+      } catch (err) {
+        // Revert on error
+        setTasks((prevTasks) =>
+          prevTasks.map((task) =>
+            task.id === activeId
+              ? { ...task, status: activeContainer, updatedAt: new Date() }
+              : task
+          )
+        );
+        setError(err instanceof Error ? err.message : 'Failed to update task');
+      }
       return;
     }
 
     // If we're dropping on a task, we need to handle reordering
     if (activeContainer === overContainer) {
-      // Same container - just reorder
+      // Same container - just reorder (local only for now)
       const containerTasks = tasks.filter(task => task.status === activeContainer);
       const activeIndex = containerTasks.findIndex(task => task.id === activeId);
       const overIndex = containerTasks.findIndex(task => task.id === overId);
@@ -121,6 +98,8 @@ export function useTasks() {
     } else {
       // Different containers - move task to new container
       const newStatus = overContainer;
+      
+      // Optimistically update UI
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === activeId
@@ -128,20 +107,41 @@ export function useTasks() {
             : task
         )
       );
+
+      // Update via API
+      try {
+        await taskApi.updateTask(activeId, { status: newStatus });
+      } catch (err) {
+        // Revert on error
+        setTasks((prevTasks) =>
+          prevTasks.map((task) =>
+            task.id === activeId
+              ? { ...task, status: activeContainer, updatedAt: new Date() }
+              : task
+          )
+        );
+        setError(err instanceof Error ? err.message : 'Failed to update task');
+      }
     }
   }, [tasks]);
 
-  const addTask = useCallback((newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const task: Task = {
-      ...newTask,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setTasks((prevTasks) => [...prevTasks, task]);
+  const addTask = useCallback(async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const createdTask = await taskApi.createTask({
+        title: newTask.title,
+        description: newTask.description,
+        status: newTask.status,
+        assignee: newTask.assignee,
+        tags: newTask.tags,
+      });
+      setTasks((prevTasks) => [...prevTasks, createdTask]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create task');
+    }
   }, []);
 
-  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    // Optimistically update UI
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId
@@ -149,17 +149,53 @@ export function useTasks() {
           : task
       )
     );
-  }, []);
 
-  const deleteTask = useCallback((taskId: string) => {
+    try {
+      const updatedTask = await taskApi.updateTask(taskId, {
+        title: updates.title,
+        description: updates.description,
+        status: updates.status,
+        assignee: updates.assignee,
+        tags: updates.tags,
+      });
+      
+      // Update with server response
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? updatedTask : task
+        )
+      );
+    } catch (err) {
+      // Revert changes on error
+      await loadTasks();
+      setError(err instanceof Error ? err.message : 'Failed to update task');
+    }
+  }, [loadTasks]);
+
+  const deleteTask = useCallback(async (taskId: string) => {
+    // Optimistically remove from UI
+    const taskToDelete = tasks.find(t => t.id === taskId);
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-  }, []);
+
+    try {
+      await taskApi.deleteTask(taskId);
+    } catch (err) {
+      // Revert on error
+      if (taskToDelete) {
+        setTasks((prevTasks) => [...prevTasks, taskToDelete]);
+      }
+      setError(err instanceof Error ? err.message : 'Failed to delete task');
+    }
+  }, [tasks]);
 
   return {
     tasks,
+    loading,
+    error,
     handleDragEnd,
     addTask,
     updateTask,
     deleteTask,
+    loadTasks,
   };
 }

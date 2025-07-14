@@ -2,11 +2,19 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import type { Task, TaskPriority } from '@/types/task';
-import { MoreHorizontal, Calendar, User, Tag, Move } from 'lucide-react';
+import { MoreHorizontal, Calendar, User, Tag, Move, Edit2, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
   onViewDetails?: (task: Task) => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement> & {
     onPointerDown?: (event: React.PointerEvent) => void;
@@ -31,11 +39,13 @@ const priorityTextColors: Record<TaskPriority, string> = {
 function TaskCardContent({
   task,
   onEdit,
+  onDelete,
   onViewDetails,
   dragHandleProps,
 }: {
   task: Task;
   onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
   onViewDetails?: (task: Task) => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement> & {
     onPointerDown?: (event: React.PointerEvent) => void;
@@ -53,6 +63,12 @@ function TaskCardContent({
     e.stopPropagation();
     haptics.light();
     onEdit?.(task);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptics.light();
+    onDelete?.(task);
   };
 
   const formatDate = (date: Date) => {
@@ -82,14 +98,31 @@ function TaskCardContent({
             {task.title}
           </h4>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 ml-2 flex-shrink-0 hover:bg-muted/80"
-          onClick={handleEditClick}
-        >
-          <MoreHorizontal className="h-3 w-3" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 ml-2 flex-shrink-0 hover:bg-muted/80"
+            >
+              <MoreHorizontal className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={handleEditClick} className="cursor-pointer">
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit task
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDeleteClick}
+              className="text-red-700 focus:text-red-700 hover:bg-red-700 hover:text-white cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete task
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Description */}
@@ -159,6 +192,7 @@ function TaskCardContent({
 export function TaskCard({
   task,
   onEdit,
+  onDelete,
   onViewDetails,
   dragHandleProps,
 }: TaskCardProps) {
@@ -166,6 +200,7 @@ export function TaskCard({
     <TaskCardContent
       task={task}
       onEdit={onEdit}
+      onDelete={onDelete}
       onViewDetails={onViewDetails}
       dragHandleProps={dragHandleProps}
     />

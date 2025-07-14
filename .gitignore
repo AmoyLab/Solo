@@ -54,9 +54,7 @@ chrome-user-data
 *.swp
 *.swo
 
-*.pid
 data
 dist
 bin
-
-.history/*
+solo.db
