@@ -116,34 +116,33 @@ export function ProjectAccordionBoard({
               <div className="flex items-center justify-between px-6 py-4">
                 <AccordionTrigger className="flex-1 hover:no-underline">
                   <div className="flex items-center justify-between w-full mr-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <FolderOpen className="h-5 w-5 text-blue-600" />
-                        <div className="text-left">
+                    <div className="flex items-center space-x-3">
+                      <FolderOpen className="h-5 w-5 text-blue-600" />
+                      <div className="text-left">
+                        <div className="flex items-center space-x-3">
                           <h3 className="text-lg font-semibold">{project.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {project.directory}
-                          </p>
+                          {/* Project Stats moved next to title */}
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {stats.total} tasks
+                            </Badge>
+                            {stats.inProgress > 0 && (
+                              <Badge variant="default" className="text-xs">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {stats.inProgress} active
+                              </Badge>
+                            )}
+                            {stats.completed > 0 && (
+                              <Badge variant="outline" className="text-xs text-green-600">
+                                {stats.completed} done
+                              </Badge>
+                            )}
+                          </div>
                         </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {project.directory}
+                        </p>
                       </div>
-                    </div>
-                    
-                    {/* Project Stats */}
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {stats.total} tasks
-                      </Badge>
-                      {stats.inProgress > 0 && (
-                        <Badge variant="default" className="text-xs">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {stats.inProgress} active
-                        </Badge>
-                      )}
-                      {stats.completed > 0 && (
-                        <Badge variant="outline" className="text-xs text-green-600">
-                          {stats.completed} done
-                        </Badge>
-                      )}
                     </div>
                   </div>
                 </AccordionTrigger>
