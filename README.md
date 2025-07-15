@@ -64,6 +64,8 @@ api/
 |--------|----------|-------------|
 | GET    | `/health` | Health check endpoint |
 
+### Swagger UI
+- link: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 ## Task Model
 
 ```json

@@ -12,8 +12,29 @@ import (
 	"github.com/amoylab/solo-api/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+
+	_ "github.com/amoylab/solo-api/docs"
 )
+
+// @title           Solo API
+// @version         1.0.0
+// @description     A RESTful API server for managing tasks and projects in Solo application
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.basic  BasicAuth
 
 var (
 	configPath string
@@ -77,12 +98,22 @@ func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.Proje
 	router.Use(corsMiddleware())
 
 	// Health check endpoint
+	// @Summary Health check
+	// @Description Check the health status of the API
+	// @Tags health
+	// @Accept json
+	// @Produce json
+	// @Success 200 {object} map[string]interface{}
+	// @Router /health [get]
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "healthy",
 			"service": "solo-api",
 		})
 	})
+
+	// Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API routes
 	api := router.Group("/api")
