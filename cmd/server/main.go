@@ -68,18 +68,18 @@ func initDatabase(cfg *config.Config, logger *zap.Logger) *database.Database {
 func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.ProjectHandler, systemHandler *handler.SystemHandler, filesystemHandler *handler.FilesystemHandler, logger *zap.Logger) *gin.Engine {
 	// Set gin mode
 	gin.SetMode(gin.ReleaseMode)
-	
+
 	router := gin.New()
-	
+
 	// Add middleware
 	router.Use(gin.Recovery())
-	router.Use(requestLogger(logger))
+	router.Use(gin.Logger())
 	router.Use(corsMiddleware())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status": "healthy",
+			"status":  "healthy",
 			"service": "solo-api",
 		})
 	})
@@ -95,7 +95,7 @@ func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.Proje
 			tasks.PUT("/:id", taskHandler.UpdateTask)
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
 		}
-		
+
 		projects := api.Group("/projects")
 		{
 			projects.POST("", projectHandler.CreateProject)
@@ -104,12 +104,12 @@ func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.Proje
 			projects.PUT("/:id", projectHandler.UpdateProject)
 			projects.DELETE("/:id", projectHandler.DeleteProject)
 		}
-		
+
 		system := api.Group("/system")
 		{
 			system.GET("/user-dirs", systemHandler.GetUserDirectoryInfo)
 		}
-		
+
 		filesystem := api.Group("/filesystem")
 		{
 			filesystem.GET("/list", filesystemHandler.ListDirectory)
@@ -119,19 +119,6 @@ func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.Proje
 	}
 
 	return router
-}
-
-// requestLogger middleware for logging requests
-func requestLogger(logger *zap.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		logger.Info("Request",
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-			zap.String("remote_addr", c.ClientIP()),
-			zap.String("user_agent", c.Request.UserAgent()),
-		)
-		c.Next()
-	}
 }
 
 // corsMiddleware adds CORS headers
@@ -181,7 +168,7 @@ func run() {
 	// Start server
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	logger.Info("Server starting", zap.String("address", address))
-	
+
 	if err := router.Run(address); err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}

@@ -110,6 +110,7 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter project name"
+              autoComplete="off"
               required
             />
           </div>
@@ -122,6 +123,7 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
                 value={directory}
                 onChange={(e) => handleDirectoryChange(e.target.value)}
                 placeholder="/path/to/project"
+                autoComplete="off"
                 required
                 className="flex-1"
               />
@@ -146,6 +148,7 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter project description"
+              autoComplete="off"
               rows={3}
             />
           </div>
