@@ -20,7 +20,7 @@ func NewDatabase(dsn string, logger *zap.Logger) (*Database, error) {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&Task{}); err != nil {
+	if err := db.AutoMigrate(&Task{}, &Project{}); err != nil {
 		return nil, err
 	}
 
@@ -49,6 +49,16 @@ type Task struct {
 	Status      string    `gorm:"not null;default:'todo'" json:"status"`
 	Assignee    string    `json:"assignee"`
 	Tags        string    `json:"tags"` // JSON string for tags array
+	ProjectID   string    `json:"project_id"` // Foreign key to projects table
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type Project struct {
+	ID          string    `gorm:"primaryKey" json:"id"`
+	Name        string    `gorm:"not null" json:"name"`
+	Description string    `json:"description"`
+	Directory   string    `gorm:"not null" json:"directory"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

@@ -46,9 +46,10 @@ export type KanbanContainerProps = {
   title?: string;
   color?: string;
   items: UniqueIdentifier[];
+  compact?: boolean;
 };
 
-export const KanbanContainer = ({ id, children, className, title, color, items }: KanbanContainerProps) => {
+export const KanbanContainer = ({ id, children, className, title, color, items, compact = false }: KanbanContainerProps) => {
   const { 
     setNodeRef, 
     active,
@@ -69,7 +70,8 @@ export const KanbanContainer = ({ id, children, className, title, color, items }
   return (
     <div
       className={cn(
-        'flex h-full min-h-40 flex-col gap-2 rounded-md border bg-secondary p-2 text-xs shadow-sm outline outline-2 transition-all duration-200',
+        'flex flex-col gap-2 rounded-md border bg-secondary p-2 text-xs shadow-sm outline outline-2 transition-all duration-200',
+        compact ? 'h-auto min-h-20' : 'h-full min-h-40',
         isOverContainer ? 'drop-zone-active' : 'outline-transparent',
         className
       )}

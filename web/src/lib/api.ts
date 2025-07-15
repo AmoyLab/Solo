@@ -1,4 +1,5 @@
 import type { Task, TaskStatus } from '@/types/task';
+import type { Project } from '@/types/project';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -17,6 +18,7 @@ export interface UpdateTaskRequest {
   status?: TaskStatus;
   assignee?: string;
   tags?: string[];
+  projectId?: string;
 }
 
 export interface ApiTask {
@@ -36,6 +38,32 @@ export interface TaskListResponse {
   total: number;
 }
 
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+  directory: string;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  directory?: string;
+}
+
+export interface ApiProject {
+  id: string;
+  name: string;
+  description: string;
+  directory: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectListResponse {
+  projects: ApiProject[];
+  total: number;
+}
+
 // Transform API task to frontend task
 function transformApiTask(apiTask: ApiTask): Task {
   return {
@@ -49,6 +77,18 @@ function transformApiTask(apiTask: ApiTask): Task {
     createdAt: new Date(apiTask.created_at),
     updatedAt: new Date(apiTask.updated_at),
     projectId: apiTask.project_id,
+  };
+}
+
+// Transform API project to frontend project
+function transformApiProject(apiProject: ApiProject): Project {
+  return {
+    id: apiProject.id,
+    name: apiProject.name,
+    description: apiProject.description || undefined,
+    directory: apiProject.directory,
+    createdAt: new Date(apiProject.created_at),
+    updatedAt: new Date(apiProject.updated_at),
   };
 }
 
@@ -84,12 +124,22 @@ export const taskApi = {
   },
 
   async createTask(task: CreateTaskRequest): Promise<Task> {
+    // Transform frontend camelCase to backend snake_case
+    const requestBody = {
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      assignee: task.assignee,
+      tags: task.tags,
+      project_id: task.projectId, // Convert camelCase to snake_case
+    };
+
     const response = await fetch(`${API_BASE_URL}/tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(task),
+      body: JSON.stringify(requestBody),
     });
     if (!response.ok) {
       throw new Error('Failed to create task');
@@ -99,12 +149,22 @@ export const taskApi = {
   },
 
   async updateTask(id: string, updates: UpdateTaskRequest): Promise<Task> {
+    // Transform frontend camelCase to backend snake_case
+    const requestBody = {
+      title: updates.title,
+      description: updates.description,
+      status: updates.status,
+      assignee: updates.assignee,
+      tags: updates.tags,
+      project_id: updates.projectId, // Convert camelCase to snake_case
+    };
+
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(updates),
+      body: JSON.stringify(requestBody),
     });
     if (!response.ok) {
       throw new Error('Failed to update task');
@@ -119,6 +179,65 @@ export const taskApi = {
     });
     if (!response.ok) {
       throw new Error('Failed to delete task');
+    }
+  },
+};
+
+export const projectApi = {
+  async getProjects(): Promise<Project[]> {
+    const response = await fetch(`${API_BASE_URL}/projects`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch projects');
+    }
+    const data: ProjectListResponse = await response.json();
+    return data.projects.map(transformApiProject);
+  },
+
+  async getProject(id: string): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch project');
+    }
+    const data: ApiProject = await response.json();
+    return transformApiProject(data);
+  },
+
+  async createProject(project: CreateProjectRequest): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(project),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create project');
+    }
+    const data: ApiProject = await response.json();
+    return transformApiProject(data);
+  },
+
+  async updateProject(id: string, updates: UpdateProjectRequest): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update project');
+    }
+    const data: ApiProject = await response.json();
+    return transformApiProject(data);
+  },
+
+  async deleteProject(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete project');
     }
   },
 };

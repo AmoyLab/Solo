@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Task, TaskStatus } from '@/types/task';
+import { useProjects } from '@/hooks/useProjects';
 import { haptics } from '@/lib/haptics';
 import { Plus, X } from 'lucide-react';
 
@@ -32,7 +33,9 @@ interface TaskModalProps {
     status: TaskStatus;
     assignee?: string;
     tags?: string[];
+    projectId?: string;
   }) => Promise<void>;
+  defaultProjectId?: string;
 }
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -43,13 +46,15 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-export function TaskModal({ open, onOpenChange, task, onSubmit }: TaskModalProps) {
+export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId }: TaskModalProps) {
+  const { projects } = useProjects();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [assignee, setAssignee] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [projectId, setProjectId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!task;
@@ -62,6 +67,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit }: TaskModalProps
       setStatus(task.status);
       setAssignee(task.assignee || '');
       setTags(task.tags || []);
+      setProjectId(task.projectId || '');
     } else {
       // Reset form for add mode
       setTitle('');
@@ -69,9 +75,11 @@ export function TaskModal({ open, onOpenChange, task, onSubmit }: TaskModalProps
       setStatus('todo');
       setAssignee('');
       setTags([]);
+      // Use defaultProjectId if provided, otherwise use first project
+      setProjectId(defaultProjectId || (projects.length > 0 ? projects[0].id : ''));
     }
     setTagInput('');
-  }, [task, open]);
+  }, [task, open, projects, defaultProjectId]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -108,6 +116,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit }: TaskModalProps
         status,
         assignee: assignee.trim() || undefined,
         tags: tags.length > 0 ? tags : undefined,
+        projectId: projectId || undefined,
       });
 
       if (!isEditMode) {
@@ -189,6 +198,22 @@ export function TaskModal({ open, onOpenChange, task, onSubmit }: TaskModalProps
                 {statusOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="project">Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
                   </SelectItem>
                 ))}
               </SelectContent>

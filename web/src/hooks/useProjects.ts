@@ -1,43 +1,23 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Project, CreateProject, UpdateProject } from '@/types/project';
-
-// Mock data for now - in the future this would connect to an API
-const STORAGE_KEY = 'kanban-projects';
+import { projectApi } from '@/lib/api';
 
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load projects from localStorage
-  const loadProjects = useCallback(() => {
+  // Load projects from API
+  const loadProjects = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsedProjects = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const projectsWithDates = parsedProjects.map((project: Project) => ({
-          ...project,
-          createdAt: new Date(project.createdAt),
-          updatedAt: new Date(project.updatedAt),
-        }));
-        setProjects(projectsWithDates);
-      }
-    } catch {
-      setError('Failed to load projects');
+      const fetchedProjects = await projectApi.getProjects();
+      setProjects(fetchedProjects);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  // Save projects to localStorage
-  const saveProjects = useCallback((projectList: Project[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(projectList));
-    } catch {
-      setError('Failed to save projects');
     }
   }, []);
 
@@ -47,67 +27,57 @@ export function useProjects() {
   }, [loadProjects]);
 
   const createProject = useCallback(async (projectData: CreateProject) => {
-    setLoading(true);
-    setError(null);
     try {
-      const newProject: Project = {
-        id: Date.now().toString(),
+      const createdProject = await projectApi.createProject({
         name: projectData.name,
         directory: projectData.directory,
         description: projectData.description,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      const updatedProjects = [...projects, newProject];
-      setProjects(updatedProjects);
-      saveProjects(updatedProjects);
-      
-      return newProject;
+      });
+      setProjects((prevProjects) => [...prevProjects, createdProject]);
+      return createdProject;
     } catch (err) {
-      setError('Failed to create project');
+      setError(err instanceof Error ? err.message : 'Failed to create project');
       throw err;
-    } finally {
-      setLoading(false);
     }
-  }, [projects, saveProjects]);
+  }, []);
 
   const updateProject = useCallback(async (id: string, updates: UpdateProject) => {
-    setLoading(true);
-    setError(null);
     try {
-      const updatedProjects = projects.map(project =>
-        project.id === id
-          ? { ...project, ...updates, updatedAt: new Date() }
-          : project
+      const updatedProject = await projectApi.updateProject(id, {
+        name: updates.name,
+        directory: updates.directory,
+        description: updates.description,
+      });
+      
+      setProjects((prevProjects) =>
+        prevProjects.map((project) =>
+          project.id === id ? updatedProject : project
+        )
       );
       
-      setProjects(updatedProjects);
-      saveProjects(updatedProjects);
-      
-      return updatedProjects.find(p => p.id === id);
+      return updatedProject;
     } catch (err) {
-      setError('Failed to update project');
+      setError(err instanceof Error ? err.message : 'Failed to update project');
       throw err;
-    } finally {
-      setLoading(false);
     }
-  }, [projects, saveProjects]);
+  }, []);
 
   const deleteProject = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
+    // Optimistically remove from UI
+    const projectToDelete = projects.find(p => p.id === id);
+    setProjects((prevProjects) => prevProjects.filter((project) => project.id !== id));
+
     try {
-      const updatedProjects = projects.filter(project => project.id !== id);
-      setProjects(updatedProjects);
-      saveProjects(updatedProjects);
+      await projectApi.deleteProject(id);
     } catch (err) {
-      setError('Failed to delete project');
+      // Revert on error
+      if (projectToDelete) {
+        setProjects((prevProjects) => [...prevProjects, projectToDelete]);
+      }
+      setError(err instanceof Error ? err.message : 'Failed to delete project');
       throw err;
-    } finally {
-      setLoading(false);
     }
-  }, [projects, saveProjects]);
+  }, [projects]);
 
   const getProject = useCallback((id: string) => {
     return projects.find(project => project.id === id);

@@ -46,6 +46,7 @@ func (s *TaskService) CreateTask(req *model.CreateTaskRequest) (*model.TaskRespo
 		Status:      status,
 		Assignee:    req.Assignee,
 		Tags:        string(tagsJSON),
+		ProjectID:   req.ProjectID,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -127,6 +128,9 @@ func (s *TaskService) UpdateTask(id string, req *model.UpdateTaskRequest) (*mode
 		}
 		dbTask.Tags = string(tagsJSON)
 	}
+	if req.ProjectID != "" {
+		dbTask.ProjectID = req.ProjectID
+	}
 
 	dbTask.UpdatedAt = time.Now()
 
@@ -168,6 +172,7 @@ func (s *TaskService) dbTaskToResponse(dbTask *database.Task) *model.TaskRespons
 		Status:      dbTask.Status,
 		Assignee:    dbTask.Assignee,
 		Tags:        tags,
+		ProjectID:   dbTask.ProjectID,
 		CreatedAt:   dbTask.CreatedAt,
 		UpdatedAt:   dbTask.UpdatedAt,
 	}

@@ -4,28 +4,24 @@ import type { Task, TaskStatus } from '@/types/task';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { taskApi } from '@/lib/api';
 
-export function useTasks(projectId?: string) {
+export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load tasks from API
   const loadTasks = useCallback(async () => {
-    if (!projectId) return;
-    
     setLoading(true);
     setError(null);
     try {
       const fetchedTasks = await taskApi.getTasks();
-      // Filter tasks by project if projectId is provided
-      const filteredTasks = fetchedTasks.filter(task => task.projectId === projectId);
-      setTasks(filteredTasks);
+      setTasks(fetchedTasks);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks');
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, []);
 
   // Load tasks on component mount
   useEffect(() => {
@@ -130,8 +126,6 @@ export function useTasks(projectId?: string) {
   }, [tasks]);
 
   const addTask = useCallback(async (newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!projectId) return;
-    
     try {
       const createdTask = await taskApi.createTask({
         title: newTask.title,
@@ -139,13 +133,13 @@ export function useTasks(projectId?: string) {
         status: newTask.status,
         assignee: newTask.assignee,
         tags: newTask.tags,
-        projectId: projectId,
+        projectId: newTask.projectId,
       });
       setTasks((prevTasks) => [...prevTasks, createdTask]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
     }
-  }, [projectId]);
+  }, []);
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     // Optimistically update UI

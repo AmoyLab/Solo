@@ -17,6 +17,7 @@ interface KanbanBoardProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   onViewTaskDetails: (task: Task) => void;
+  compact?: boolean;
 }
 
 const allTaskStatuses: TaskStatus[] = [
@@ -50,6 +51,7 @@ export function KanbanBoard({
   onEditTask,
   onDeleteTask,
   onViewTaskDetails,
+  compact = false,
 }: KanbanBoardProps) {
   // Memoize filtered tasks
   const filteredTasks = useMemo(() => {
@@ -98,7 +100,7 @@ export function KanbanBoard({
   }, [filteredTasks]);
 
   return (
-    <div className="h-full overflow-auto">
+    <div className={compact ? "h-96 overflow-auto" : "h-full overflow-auto"}>
       <KanbanProvider onDragEnd={onDragEnd} items={groupedTasks} handle={true}>
         <SortableContext items={containers} strategy={verticalListSortingStrategy}>
           {containers.map((containerId) => (
@@ -108,6 +110,7 @@ export function KanbanBoard({
               title={statusLabels[containerId]}
               color={statusBoardColors[containerId]}
               items={groupedTasks[containerId]}
+              compact={compact}
             >
               <SortableContext items={groupedTasks[containerId]} strategy={verticalListSortingStrategy}>
                 {groupedTasks[containerId].map((taskId) => {

@@ -11,6 +11,7 @@ type Task struct {
 	Status      string    `json:"status"`
 	Assignee    string    `json:"assignee"`
 	Tags        []string  `json:"tags"`
+	ProjectID   string    `json:"project_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -21,6 +22,7 @@ type CreateTaskRequest struct {
 	Status      string   `json:"status"`
 	Assignee    string   `json:"assignee"`
 	Tags        []string `json:"tags"`
+	ProjectID   string   `json:"project_id"`
 }
 
 type UpdateTaskRequest struct {
@@ -29,6 +31,7 @@ type UpdateTaskRequest struct {
 	Status      string   `json:"status"`
 	Assignee    string   `json:"assignee"`
 	Tags        []string `json:"tags"`
+	ProjectID   string   `json:"project_id"`
 }
 
 type TaskResponse struct {
@@ -38,6 +41,7 @@ type TaskResponse struct {
 	Status      string    `json:"status"`
 	Assignee    string    `json:"assignee"`
 	Tags        []string  `json:"tags"`
+	ProjectID   string    `json:"project_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

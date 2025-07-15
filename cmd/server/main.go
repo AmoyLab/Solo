@@ -65,7 +65,7 @@ func initDatabase(cfg *config.Config, logger *zap.Logger) *database.Database {
 	return db
 }
 
-func setupRouter(taskHandler *handler.TaskHandler, systemHandler *handler.SystemHandler, filesystemHandler *handler.FilesystemHandler, logger *zap.Logger) *gin.Engine {
+func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.ProjectHandler, systemHandler *handler.SystemHandler, filesystemHandler *handler.FilesystemHandler, logger *zap.Logger) *gin.Engine {
 	// Set gin mode
 	gin.SetMode(gin.ReleaseMode)
 	
@@ -94,6 +94,15 @@ func setupRouter(taskHandler *handler.TaskHandler, systemHandler *handler.System
 			tasks.GET("/:id", taskHandler.GetTask)
 			tasks.PUT("/:id", taskHandler.UpdateTask)
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
+		}
+		
+		projects := api.Group("/projects")
+		{
+			projects.POST("", projectHandler.CreateProject)
+			projects.GET("", projectHandler.GetProjects)
+			projects.GET("/:id", projectHandler.GetProject)
+			projects.PUT("/:id", projectHandler.UpdateProject)
+			projects.DELETE("/:id", projectHandler.DeleteProject)
 		}
 		
 		system := api.Group("/system")
@@ -158,14 +167,16 @@ func run() {
 
 	// Initialize services
 	taskService := service.NewTaskService(db, logger)
+	projectService := service.NewProjectService(db, logger)
 
 	// Initialize handlers
 	taskHandler := handler.NewTaskHandler(taskService, logger)
+	projectHandler := handler.NewProjectHandler(projectService, logger)
 	systemHandler := handler.NewSystemHandler(logger)
 	filesystemHandler := handler.NewFilesystemHandler(logger)
 
 	// Setup router
-	router := setupRouter(taskHandler, systemHandler, filesystemHandler, logger)
+	router := setupRouter(taskHandler, projectHandler, systemHandler, filesystemHandler, logger)
 
 	// Start server
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

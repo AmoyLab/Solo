@@ -1,21 +1,20 @@
-import { useState, useEffect } from 'react';
-import { KanbanBoard } from '@/components/KanbanBoard';
+import { useState } from 'react';
 import { TaskModal } from '@/components/TaskModal';
 import { TaskDetailsDrawer } from '@/components/TaskDetailsDrawer';
 import { DeleteTaskDialog } from '@/components/DeleteTaskDialog';
-import { ProjectSelector } from '@/components/ProjectSelector';
+import { ProjectModal } from '@/components/ProjectModal';
+import { ProjectAccordionBoard } from '@/components/ProjectAccordionBoard';
 import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
 import { haptics } from '@/lib/haptics';
-import { Search, Plus, ArrowLeft } from 'lucide-react';
+import { Search, Plus, FolderPlus } from 'lucide-react';
 import type { Task } from '@/types/task';
 import type { Project } from '@/types/project';
 
-const SELECTED_PROJECT_KEY = 'kanban-selected-project';
-
 function App() {
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const { tasks, loading, error, handleDragEnd, addTask, updateTask, deleteTask } = useTasks(selectedProject?.id);
+  const { projects, loading: projectsLoading, createProject, updateProject, deleteProject } = useProjects();
+  const { tasks, loading: tasksLoading, handleDragEnd, addTask, updateTask, deleteTask } = useTasks();
   const [searchQuery, setSearchQuery] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -23,25 +22,9 @@ function App() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-
-  // Load selected project from localStorage on mount
-  useEffect(() => {
-    const storedProjectId = localStorage.getItem(SELECTED_PROJECT_KEY);
-    if (storedProjectId) {
-      // In a real app, you would fetch the project details from an API
-      // For now, we'll just clear the stored project and let the user select again
-      localStorage.removeItem(SELECTED_PROJECT_KEY);
-    }
-  }, []);
-
-  // Save selected project to localStorage when it changes
-  useEffect(() => {
-    if (selectedProject) {
-      localStorage.setItem(SELECTED_PROJECT_KEY, selectedProject.id);
-    } else {
-      localStorage.removeItem(SELECTED_PROJECT_KEY);
-    }
-  }, [selectedProject]);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [defaultProjectId, setDefaultProjectId] = useState<string>('');
 
   const handleEditTask = (task: Task) => {
     haptics.light();
@@ -69,10 +52,17 @@ function App() {
     setShowDetailsDrawer(true);
   };
 
-  const handleAddTask = () => {
+  const handleAddTask = (projectId?: string) => {
     haptics.medium();
     setEditingTask(null);
     setShowTaskModal(true);
+    // 如果提供了项目ID，我们需要一种方式传递给TaskModal
+    // 我们将添加一个新的状态来跟踪默认项目
+    if (projectId) {
+      setDefaultProjectId(projectId);
+    } else {
+      setDefaultProjectId('');
+    }
   };
 
   const handleTaskSubmit = async (taskData: {
@@ -81,6 +71,7 @@ function App() {
     status: 'todo' | 'inprogress' | 'inreview' | 'done' | 'cancelled';
     assignee?: string;
     tags?: string[];
+    projectId?: string;
   }) => {
     if (editingTask) {
       // Update existing task
@@ -89,12 +80,26 @@ function App() {
         priority: editingTask.priority, // Keep existing priority
       });
     } else {
-      // Add new task
+      // Add new task - projectId should be provided in taskData
       await addTask({
         ...taskData,
         priority: 'medium', // Default priority
       });
     }
+  };
+
+  const handleProjectSubmit = async (projectData: {
+    name: string;
+    directory: string;
+    description?: string;
+  }) => {
+    if (editingProject) {
+      await updateProject(editingProject.id, projectData);
+    } else {
+      await createProject(projectData);
+    }
+    setShowProjectModal(false);
+    setEditingProject(null);
   };
 
   const handleModalClose = (open: boolean) => {
@@ -120,19 +125,12 @@ function App() {
     handleDeleteTask(task);
   };
 
-  // Show project selector if no project is selected
-  if (!selectedProject) {
-    return (
-      <div className="min-h-screen bg-background">
-        <ProjectSelector 
-          selectedProjectId={null}
-          onProjectSelect={setSelectedProject}
-        />
-      </div>
-    );
-  }
+  const handleCreateProject = () => {
+    setEditingProject(null);
+    setShowProjectModal(true);
+  };
 
-  if (loading) {
+  if (projectsLoading || tasksLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -143,11 +141,13 @@ function App() {
     );
   }
 
-  if (error) {
+  // Show error if there's an issue loading projects or tasks
+  const hasError = false; // We'll handle errors in individual components
+  if (hasError) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">Error: {error}</p>
+          <p className="text-destructive mb-4">Error loading data</p>
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
@@ -162,22 +162,11 @@ function App() {
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedProject(null)}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Projects
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">{selectedProject.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {selectedProject.directory}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Task Board</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage tasks across all your projects
+              </p>
             </div>
             <div className="flex items-center gap-4">
               {/* Search */}
@@ -191,8 +180,13 @@ function App() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              {/* Project Management Button */}
+              <Button onClick={handleCreateProject} variant="outline" size="sm">
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Project
+              </Button>
               {/* Add Task Button */}
-              <Button onClick={handleAddTask} size="sm">
+              <Button onClick={() => handleAddTask()} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </Button>
@@ -203,13 +197,17 @@ function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 h-[calc(100vh-120px)]">
-        <KanbanBoard
+        <ProjectAccordionBoard
+          projects={projects}
           tasks={tasks}
           searchQuery={searchQuery}
           onDragEnd={handleDragEnd}
           onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
           onViewTaskDetails={handleViewTaskDetails}
+          onEditProject={setEditingProject}
+          onDeleteProject={deleteProject}
+          onAddTask={handleAddTask}
         />
       </main>
 
@@ -219,6 +217,7 @@ function App() {
         onOpenChange={handleModalClose}
         task={editingTask || undefined}
         onSubmit={handleTaskSubmit}
+        defaultProjectId={defaultProjectId}
       />
 
       {/* Task Details Drawer */}
@@ -236,6 +235,17 @@ function App() {
         onOpenChange={setShowDeleteDialog}
         task={taskToDelete}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Project Modal (Add/Edit) */}
+      <ProjectModal
+        open={showProjectModal}
+        onOpenChange={(open) => {
+          setShowProjectModal(open);
+          if (!open) setEditingProject(null);
+        }}
+        project={editingProject}
+        onSubmit={handleProjectSubmit}
       />
     </div>
   );
