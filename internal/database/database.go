@@ -20,7 +20,7 @@ func NewDatabase(dsn string, logger *zap.Logger) (*Database, error) {
 	}
 
 	// Auto-migrate the schema
-	if err := db.AutoMigrate(&Task{}, &Project{}); err != nil {
+	if err := db.AutoMigrate(&Task{}, &Project{}, &Tag{}, &TaskTag{}); err != nil {
 		return nil, err
 	}
 
@@ -48,10 +48,10 @@ type Task struct {
 	Description string    `json:"description"`
 	Status      string    `gorm:"not null;default:'todo'" json:"status"`
 	Assignee    string    `json:"assignee"`
-	Tags        string    `json:"tags"` // JSON string for tags array
 	ProjectID   string    `json:"project_id"` // Foreign key to projects table
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	TaskTags    []TaskTag `gorm:"foreignKey:TaskID" json:"-"`
 }
 
 type Project struct {
@@ -61,4 +61,19 @@ type Project struct {
 	Directory   string    `gorm:"not null" json:"directory"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type Tag struct {
+	ID        string    `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"unique;not null" json:"name"`
+	Color     string    `json:"color"` // Optional: for UI display
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type TaskTag struct {
+	TaskID string `gorm:"primaryKey" json:"task_id"`
+	TagID  string `gorm:"primaryKey" json:"tag_id"`
+	Task   Task   `gorm:"foreignKey:TaskID" json:"-"`
+	Tag    Tag    `gorm:"foreignKey:TagID" json:"-"`
 }
