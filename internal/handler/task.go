@@ -23,6 +23,16 @@ func NewTaskHandler(taskService *service.TaskService, logger *zap.Logger) *TaskH
 }
 
 // CreateTask handles POST /api/tasks
+// @Summary Create a new task
+// @Description Create a new task with the provided details
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param task body model.CreateTaskRequest true "Task creation request"
+// @Success 201 {object} model.TaskResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tasks [post]
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 	var req model.CreateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,6 +67,17 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 }
 
 // GetTask handles GET /api/tasks/:id
+// @Summary Get a task by ID
+// @Description Get a specific task by its ID
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param id path string true "Task ID"
+// @Success 200 {object} model.TaskResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tasks/{id} [get]
 func (h *TaskHandler) GetTask(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -89,6 +110,14 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 }
 
 // GetTasks handles GET /api/tasks
+// @Summary Get all tasks
+// @Description Get a list of all tasks
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.TaskListResponse
+// @Failure 500 {object} map[string]interface{}
+// @Router /tasks [get]
 func (h *TaskHandler) GetTasks(c *gin.Context) {
 	tasks, err := h.taskService.GetTasks()
 	if err != nil {
@@ -104,6 +133,18 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 }
 
 // UpdateTask handles PUT /api/tasks/:id
+// @Summary Update a task
+// @Description Update a task with the provided details
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param id path string true "Task ID"
+// @Param task body model.UpdateTaskRequest true "Task update request"
+// @Success 200 {object} model.TaskResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tasks/{id} [put]
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -154,6 +195,17 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 }
 
 // DeleteTask handles DELETE /api/tasks/:id
+// @Summary Delete a task
+// @Description Delete a task by its ID
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param id path string true "Task ID"
+// @Success 204
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tasks/{id} [delete]
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
