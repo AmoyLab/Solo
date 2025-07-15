@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TaskModal } from '@/components/TaskModal';
 import { TaskDetailsDrawer } from '@/components/TaskDetailsDrawer';
 import { DeleteTaskDialog } from '@/components/DeleteTaskDialog';
+import { DeleteProjectDialog } from '@/components/DeleteProjectDialog';
 import { ProjectModal } from '@/components/ProjectModal';
 import { ProjectAccordionBoard } from '@/components/ProjectAccordionBoard';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,8 @@ function App() {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [defaultProjectId, setDefaultProjectId] = useState<string>('');
 
   const handleEditTask = (task: Task) => {
@@ -130,6 +133,28 @@ function App() {
     setShowProjectModal(true);
   };
 
+  const handleDeleteProject = (project: Project) => {
+    haptics.light();
+    setProjectToDelete(project);
+    setShowDeleteProjectDialog(true);
+  };
+
+  const handleConfirmDeleteProject = async () => {
+    if (projectToDelete) {
+      haptics.medium();
+      
+      // First delete all tasks belonging to this project
+      const projectTasks = tasks.filter(task => task.projectId === projectToDelete.id);
+      for (const task of projectTasks) {
+        await deleteTask(task.id);
+      }
+      
+      // Then delete the project
+      await deleteProject(projectToDelete.id);
+      setProjectToDelete(null);
+    }
+  };
+
   if (projectsLoading || tasksLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -205,8 +230,11 @@ function App() {
           onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
           onViewTaskDetails={handleViewTaskDetails}
-          onEditProject={setEditingProject}
-          onDeleteProject={deleteProject}
+          onEditProject={(project) => {
+            setEditingProject(project);
+            setShowProjectModal(true);
+          }}
+          onDeleteProject={handleDeleteProject}
           onAddTask={handleAddTask}
         />
       </main>
@@ -246,6 +274,15 @@ function App() {
         }}
         project={editingProject}
         onSubmit={handleProjectSubmit}
+      />
+
+      {/* Delete Project Dialog */}
+      <DeleteProjectDialog
+        open={showDeleteProjectDialog}
+        onOpenChange={setShowDeleteProjectDialog}
+        project={projectToDelete}
+        taskCount={projectToDelete ? tasks.filter(task => task.projectId === projectToDelete.id).length : 0}
+        onConfirm={handleConfirmDeleteProject}
       />
     </div>
   );

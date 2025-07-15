@@ -35,7 +35,7 @@ const statusConfig: Record<TaskStatus, {
   color: string;
   bgColor: string;
   borderColor: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
 }> = {
   todo: {
     label: 'To Do',

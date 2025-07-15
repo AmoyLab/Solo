@@ -23,7 +23,7 @@ interface ProjectAccordionBoardProps {
   onDeleteTask: (task: Task) => void;
   onViewTaskDetails: (task: Task) => void;
   onEditProject: (project: Project) => void;
-  onDeleteProject: (projectId: string) => void;
+  onDeleteProject: (project: Project) => void;
   onAddTask: (projectId?: string) => void;
 }
 
@@ -165,9 +165,7 @@ export function ProjectAccordionBoard({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
-                        onDeleteProject(project.id);
-                      }
+                      onDeleteProject(project);
                     }}
                     title="Delete project"
                   >

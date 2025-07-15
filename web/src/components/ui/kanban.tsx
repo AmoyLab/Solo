@@ -36,7 +36,7 @@ export type Status = {
 export type KanbanItem = {
   id: UniqueIdentifier;
   name: string;
-  data?: any;
+  data?: Record<string, unknown>;
 };
 
 export type KanbanContainerProps = {
@@ -142,7 +142,7 @@ export const KanbanCard = ({
       onClick={onClick}
     >
       {React.isValidElement(children) ? 
-        React.cloneElement(children as React.ReactElement<any>, { 
+        React.cloneElement(children as React.ReactElement<{ dragHandleProps?: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> } }>, { 
           dragHandleProps: handle ? {
             ref: setActivatorNodeRef,
             ...listeners,
