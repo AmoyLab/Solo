@@ -46,6 +46,7 @@ func (s *TaskService) CreateTask(req *model.CreateTaskRequest) (*model.TaskRespo
 		Description: req.Description,
 		Status:      status,
 		Assignee:    req.Assignee,
+		AgentID:     req.AgentID,
 		ProjectID:   req.ProjectID,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -75,7 +76,7 @@ func (s *TaskService) CreateTask(req *model.CreateTaskRequest) (*model.TaskRespo
 
 func (s *TaskService) GetTaskByID(id string) (*model.TaskResponse, error) {
 	var dbTask database.Task
-	if err := s.db.DB.Preload("TaskTags.Tag").First(&dbTask, "id = ?", id).Error; err != nil {
+	if err := s.db.DB.Preload("TaskTags.Tag").Preload("Agent").First(&dbTask, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -90,7 +91,7 @@ func (s *TaskService) GetTasks() (*model.TaskListResponse, error) {
 	var dbTasks []database.Task
 	var total int64
 
-	if err := s.db.DB.Preload("TaskTags.Tag").Find(&dbTasks).Error; err != nil {
+	if err := s.db.DB.Preload("TaskTags.Tag").Preload("Agent").Find(&dbTasks).Error; err != nil {
 		s.logger.Error("Failed to get tasks", zap.Error(err))
 		return nil, err
 	}
@@ -146,6 +147,9 @@ func (s *TaskService) UpdateTask(id string, req *model.UpdateTaskRequest) (*mode
 	if req.ProjectID != "" {
 		dbTask.ProjectID = req.ProjectID
 	}
+	if req.AgentID != nil {
+		dbTask.AgentID = req.AgentID
+	}
 
 	dbTask.UpdatedAt = time.Now()
 
@@ -199,12 +203,27 @@ func (s *TaskService) dbTaskToResponse(dbTask *database.Task) *model.TaskRespons
 		tags = []string{}
 	}
 
+	// Handle agent
+	var agent *model.Agent
+	if dbTask.Agent != nil {
+		agent = &model.Agent{
+			ID:          dbTask.Agent.ID,
+			Name:        dbTask.Agent.Name,
+			Type:        dbTask.Agent.Type,
+			Description: dbTask.Agent.Description,
+			CreatedAt:   dbTask.Agent.CreatedAt,
+			UpdatedAt:   dbTask.Agent.UpdatedAt,
+		}
+	}
+
 	return &model.TaskResponse{
 		ID:          dbTask.ID,
 		Title:       dbTask.Title,
 		Description: dbTask.Description,
 		Status:      dbTask.Status,
 		Assignee:    dbTask.Assignee,
+		AgentID:     dbTask.AgentID,
+		Agent:       agent,
 		Tags:        tags,
 		ProjectID:   dbTask.ProjectID,
 		CreatedAt:   dbTask.CreatedAt,

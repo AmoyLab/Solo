@@ -13,7 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { FolderPicker } from '@/components/FolderPicker';
 import { FolderOpen, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Project } from '@/types/project';
+import { useAgents } from '@/hooks/useAgents';
 
 interface ProjectModalProps {
   open: boolean;
@@ -23,13 +25,16 @@ interface ProjectModalProps {
     name: string;
     directory: string;
     description?: string;
+    agentId?: string;
   }) => Promise<void>;
 }
 
 export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectModalProps) {
+  const { agents } = useAgents();
   const [name, setName] = useState('');
   const [directory, setDirectory] = useState('');
   const [description, setDescription] = useState('');
+  const [agentId, setAgentId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
@@ -41,13 +46,15 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
       setName(project.name);
       setDirectory(project.directory);
       setDescription(project.description || '');
+      setAgentId(project.agentId || '');
     } else {
       setName('');
       setDirectory('');
       setDescription('');
+      setAgentId(agents.length > 0 ? agents[0].id : '');
     }
     setError(null);
-  }, [project, open]);
+  }, [project, open, agents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +66,7 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
         name: name.trim(),
         directory: directory.trim(),
         description: description.trim() || undefined,
+        agentId: agentId || undefined,
       });
       onOpenChange(false);
     } catch (err) {
@@ -151,6 +159,28 @@ export function ProjectModal({ open, onOpenChange, project, onSubmit }: ProjectM
               autoComplete="off"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="agent">Agent</Label>
+            <Select
+              value={agentId}
+              onValueChange={setAgentId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              Choose the code agent for this project
+            </p>
           </div>
 
           {error && (

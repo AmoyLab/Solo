@@ -1,5 +1,5 @@
 import type { Task, TaskStatus } from '@/types/task';
-import type { Project } from '@/types/project';
+import type { Project, Agent } from '@/types/project';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -8,6 +8,7 @@ export interface CreateTaskRequest {
   description?: string;
   status?: TaskStatus;
   assignee?: string;
+  agentId?: string;
   tags?: string[];
   projectId?: string;
 }
@@ -17,6 +18,7 @@ export interface UpdateTaskRequest {
   description?: string;
   status?: TaskStatus;
   assignee?: string;
+  agentId?: string;
   tags?: string[];
   projectId?: string;
 }
@@ -27,6 +29,8 @@ export interface ApiTask {
   description: string;
   status: TaskStatus;
   assignee: string;
+  agent_id?: string;
+  agent?: Agent;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -42,12 +46,14 @@ export interface CreateProjectRequest {
   name: string;
   description?: string;
   directory: string;
+  agentId?: string;
 }
 
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
   directory?: string;
+  agentId?: string;
 }
 
 export interface ApiProject {
@@ -55,6 +61,8 @@ export interface ApiProject {
   name: string;
   description: string;
   directory: string;
+  agent_id?: string;
+  agent?: Agent;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +81,15 @@ function transformApiTask(apiTask: ApiTask): Task {
     status: apiTask.status,
     priority: 'medium', // Default priority since API doesn't have this field
     assignee: apiTask.assignee || undefined,
+    agentId: apiTask.agent_id,
+    agent: apiTask.agent ? {
+      id: apiTask.agent.id,
+      name: apiTask.agent.name,
+      type: apiTask.agent.type,
+      description: apiTask.agent.description,
+      createdAt: new Date(apiTask.agent.createdAt),
+      updatedAt: new Date(apiTask.agent.updatedAt),
+    } : undefined,
     tags: apiTask.tags || [],
     createdAt: new Date(apiTask.created_at),
     updatedAt: new Date(apiTask.updated_at),
@@ -87,6 +104,15 @@ function transformApiProject(apiProject: ApiProject): Project {
     name: apiProject.name,
     description: apiProject.description || undefined,
     directory: apiProject.directory,
+    agentId: apiProject.agent_id,
+    agent: apiProject.agent ? {
+      id: apiProject.agent.id,
+      name: apiProject.agent.name,
+      type: apiProject.agent.type,
+      description: apiProject.agent.description,
+      createdAt: new Date(apiProject.agent.createdAt),
+      updatedAt: new Date(apiProject.agent.updatedAt),
+    } : undefined,
     createdAt: new Date(apiProject.created_at),
     updatedAt: new Date(apiProject.updated_at),
   };
@@ -130,6 +156,7 @@ export const taskApi = {
       description: task.description,
       status: task.status,
       assignee: task.assignee,
+      agent_id: task.agentId, // Convert camelCase to snake_case
       tags: task.tags,
       project_id: task.projectId, // Convert camelCase to snake_case
     };
@@ -155,6 +182,7 @@ export const taskApi = {
       description: updates.description,
       status: updates.status,
       assignee: updates.assignee,
+      agent_id: updates.agentId, // Convert camelCase to snake_case
       tags: updates.tags,
       project_id: updates.projectId, // Convert camelCase to snake_case
     };
@@ -183,6 +211,21 @@ export const taskApi = {
   },
 };
 
+export const agentApi = {
+  async getAgents(): Promise<Agent[]> {
+    const response = await fetch(`${API_BASE_URL}/agents`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch agents');
+    }
+    const data: { agents: Agent[]; total: number } = await response.json();
+    return data.agents.map(agent => ({
+      ...agent,
+      createdAt: new Date(agent.createdAt),
+      updatedAt: new Date(agent.updatedAt),
+    }));
+  },
+};
+
 export const projectApi = {
   async getProjects(): Promise<Project[]> {
     const response = await fetch(`${API_BASE_URL}/projects`);
@@ -203,12 +246,20 @@ export const projectApi = {
   },
 
   async createProject(project: CreateProjectRequest): Promise<Project> {
+    // Transform frontend camelCase to backend snake_case
+    const requestBody = {
+      name: project.name,
+      description: project.description,
+      directory: project.directory,
+      agent_id: project.agentId, // Convert camelCase to snake_case
+    };
+
     const response = await fetch(`${API_BASE_URL}/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(project),
+      body: JSON.stringify(requestBody),
     });
     if (!response.ok) {
       throw new Error('Failed to create project');
@@ -218,12 +269,20 @@ export const projectApi = {
   },
 
   async updateProject(id: string, updates: UpdateProjectRequest): Promise<Project> {
+    // Transform frontend camelCase to backend snake_case
+    const requestBody = {
+      name: updates.name,
+      description: updates.description,
+      directory: updates.directory,
+      agent_id: updates.agentId, // Convert camelCase to snake_case
+    };
+
     const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(updates),
+      body: JSON.stringify(requestBody),
     });
     if (!response.ok) {
       throw new Error('Failed to update project');

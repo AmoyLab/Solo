@@ -31,6 +31,7 @@ func (s *ProjectService) CreateProject(req *model.CreateProjectRequest) (*model.
 		Name:        req.Name,
 		Description: req.Description,
 		Directory:   req.Directory,
+		AgentID:     req.AgentID,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -40,17 +41,9 @@ func (s *ProjectService) CreateProject(req *model.CreateProjectRequest) (*model.
 		return nil, err
 	}
 
-	response := &model.ProjectResponse{
-		ID:          project.ID,
-		Name:        project.Name,
-		Description: project.Description,
-		Directory:   project.Directory,
-		CreatedAt:   project.CreatedAt,
-		UpdatedAt:   project.UpdatedAt,
-	}
-
+	// Load project with agent for response
 	s.logger.Info("Project created successfully", zap.String("id", project.ID))
-	return response, nil
+	return s.GetProject(project.ID)
 }
 
 func (s *ProjectService) GetProjects() (*model.ProjectListResponse, error) {
@@ -64,18 +57,32 @@ func (s *ProjectService) GetProjects() (*model.ProjectListResponse, error) {
 		return nil, err
 	}
 
-	if err := s.db.GetDB().Find(&projects).Error; err != nil {
+	if err := s.db.GetDB().Preload("Agent").Find(&projects).Error; err != nil {
 		s.logger.Error("Failed to get projects", zap.Error(err))
 		return nil, err
 	}
 
 	var projectResponses []model.ProjectResponse
 	for _, project := range projects {
+		var agent *model.Agent
+		if project.Agent != nil {
+			agent = &model.Agent{
+				ID:          project.Agent.ID,
+				Name:        project.Agent.Name,
+				Type:        project.Agent.Type,
+				Description: project.Agent.Description,
+				CreatedAt:   project.Agent.CreatedAt,
+				UpdatedAt:   project.Agent.UpdatedAt,
+			}
+		}
+
 		projectResponses = append(projectResponses, model.ProjectResponse{
 			ID:          project.ID,
 			Name:        project.Name,
 			Description: project.Description,
 			Directory:   project.Directory,
+			AgentID:     project.AgentID,
+			Agent:       agent,
 			CreatedAt:   project.CreatedAt,
 			UpdatedAt:   project.UpdatedAt,
 		})
@@ -94,7 +101,7 @@ func (s *ProjectService) GetProject(id string) (*model.ProjectResponse, error) {
 	s.logger.Info("Getting project", zap.String("id", id))
 
 	var project database.Project
-	if err := s.db.GetDB().First(&project, "id = ?", id).Error; err != nil {
+	if err := s.db.GetDB().Preload("Agent").First(&project, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			s.logger.Warn("Project not found", zap.String("id", id))
 			return nil, err
@@ -103,11 +110,25 @@ func (s *ProjectService) GetProject(id string) (*model.ProjectResponse, error) {
 		return nil, err
 	}
 
+	var agent *model.Agent
+	if project.Agent != nil {
+		agent = &model.Agent{
+			ID:          project.Agent.ID,
+			Name:        project.Agent.Name,
+			Type:        project.Agent.Type,
+			Description: project.Agent.Description,
+			CreatedAt:   project.Agent.CreatedAt,
+			UpdatedAt:   project.Agent.UpdatedAt,
+		}
+	}
+
 	response := &model.ProjectResponse{
 		ID:          project.ID,
 		Name:        project.Name,
 		Description: project.Description,
 		Directory:   project.Directory,
+		AgentID:     project.AgentID,
+		Agent:       agent,
 		CreatedAt:   project.CreatedAt,
 		UpdatedAt:   project.UpdatedAt,
 	}
@@ -139,6 +160,9 @@ func (s *ProjectService) UpdateProject(id string, req *model.UpdateProjectReques
 	if req.Directory != "" {
 		project.Directory = req.Directory
 	}
+	if req.AgentID != nil {
+		project.AgentID = req.AgentID
+	}
 	project.UpdatedAt = time.Now()
 
 	if err := s.db.GetDB().Save(&project).Error; err != nil {
@@ -146,17 +170,8 @@ func (s *ProjectService) UpdateProject(id string, req *model.UpdateProjectReques
 		return nil, err
 	}
 
-	response := &model.ProjectResponse{
-		ID:          project.ID,
-		Name:        project.Name,
-		Description: project.Description,
-		Directory:   project.Directory,
-		CreatedAt:   project.CreatedAt,
-		UpdatedAt:   project.UpdatedAt,
-	}
-
 	s.logger.Info("Project updated successfully", zap.String("id", id))
-	return response, nil
+	return s.GetProject(id)
 }
 
 func (s *ProjectService) DeleteProject(id string) error {

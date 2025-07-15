@@ -65,7 +65,7 @@ func initDatabase(cfg *config.Config, logger *zap.Logger) *database.Database {
 	return db
 }
 
-func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.ProjectHandler, systemHandler *handler.SystemHandler, filesystemHandler *handler.FilesystemHandler, logger *zap.Logger) *gin.Engine {
+func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.ProjectHandler, agentHandler *handler.AgentHandler, systemHandler *handler.SystemHandler, filesystemHandler *handler.FilesystemHandler, logger *zap.Logger) *gin.Engine {
 	// Set gin mode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -103,6 +103,15 @@ func setupRouter(taskHandler *handler.TaskHandler, projectHandler *handler.Proje
 			projects.GET("/:id", projectHandler.GetProject)
 			projects.PUT("/:id", projectHandler.UpdateProject)
 			projects.DELETE("/:id", projectHandler.DeleteProject)
+		}
+
+		agents := api.Group("/agents")
+		{
+			agents.POST("", agentHandler.CreateAgent)
+			agents.GET("", agentHandler.GetAgents)
+			agents.GET("/:id", agentHandler.GetAgent)
+			agents.PUT("/:id", agentHandler.UpdateAgent)
+			agents.DELETE("/:id", agentHandler.DeleteAgent)
 		}
 
 		system := api.Group("/system")
@@ -155,15 +164,17 @@ func run() {
 	// Initialize services
 	taskService := service.NewTaskService(db, logger)
 	projectService := service.NewProjectService(db, logger)
+	agentService := service.NewAgentService(db, logger)
 
 	// Initialize handlers
 	taskHandler := handler.NewTaskHandler(taskService, logger)
 	projectHandler := handler.NewProjectHandler(projectService, logger)
+	agentHandler := handler.NewAgentHandler(agentService, logger)
 	systemHandler := handler.NewSystemHandler(logger)
 	filesystemHandler := handler.NewFilesystemHandler(logger)
 
 	// Setup router
-	router := setupRouter(taskHandler, projectHandler, systemHandler, filesystemHandler, logger)
+	router := setupRouter(taskHandler, projectHandler, agentHandler, systemHandler, filesystemHandler, logger)
 
 	// Start server
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

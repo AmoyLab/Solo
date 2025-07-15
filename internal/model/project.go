@@ -9,20 +9,24 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Directory   string    `json:"directory"`
+	AgentID     *string   `json:"agent_id,omitempty"`
+	Agent       *Agent    `json:"agent,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CreateProjectRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	Directory   string `json:"directory" binding:"required"`
+	Name        string  `json:"name" binding:"required"`
+	Description string  `json:"description"`
+	Directory   string  `json:"directory" binding:"required"`
+	AgentID     *string `json:"agent_id,omitempty"`
 }
 
 type UpdateProjectRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Directory   string `json:"directory"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Directory   string  `json:"directory"`
+	AgentID     *string `json:"agent_id,omitempty"`
 }
 
 type ProjectResponse struct {
@@ -30,6 +34,8 @@ type ProjectResponse struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Directory   string    `json:"directory"`
+	AgentID     *string   `json:"agent_id,omitempty"`
+	Agent       *Agent    `json:"agent,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Task, TaskStatus } from '@/types/task';
+import type { Project } from '@/types/project';
 import { useProjects } from '@/hooks/useProjects';
+import { useAgents } from '@/hooks/useAgents';
 import { haptics } from '@/lib/haptics';
 import { Plus, X } from 'lucide-react';
 
@@ -32,10 +34,12 @@ interface TaskModalProps {
     description?: string;
     status: TaskStatus;
     assignee?: string;
+    agentId?: string;
     tags?: string[];
     projectId?: string;
   }) => Promise<void>;
   defaultProjectId?: string;
+  projects?: Project[];
 }
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -46,8 +50,10 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId }: TaskModalProps) {
-  const { projects } = useProjects();
+export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId, projects: passedProjects }: TaskModalProps) {
+  const { projects: hookProjects } = useProjects();
+  const { agents } = useAgents();
+  const projects = passedProjects || hookProjects;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
@@ -55,6 +61,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<string>('');
+  const [agentId, setAgentId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!task;
@@ -68,6 +75,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
       setAssignee(task.assignee || '');
       setTags(task.tags || []);
       setProjectId(task.projectId || '');
+      setAgentId(task.agentId || '');
     } else {
       // Reset form for add mode
       setTitle('');
@@ -76,10 +84,15 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
       setAssignee('');
       setTags([]);
       // Use defaultProjectId if provided, otherwise use first project
-      setProjectId(defaultProjectId || (projects.length > 0 ? projects[0].id : ''));
+      const selectedProjectId = defaultProjectId || (projects.length > 0 ? projects[0].id : '');
+      setProjectId(selectedProjectId);
+      
+      // Set default agent from selected project or first available agent
+      const selectedProject = projects.find(p => p.id === selectedProjectId);
+      setAgentId(selectedProject?.agentId || (agents.length > 0 ? agents[0].id : ''));
     }
     setTagInput('');
-  }, [task, open, projects, defaultProjectId]);
+  }, [task, open, projects, agents, defaultProjectId]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -99,6 +112,15 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
     }
   };
 
+  const handleProjectChange = (newProjectId: string) => {
+    setProjectId(newProjectId);
+    // Auto-update agent when project changes
+    const selectedProject = projects.find(p => p.id === newProjectId);
+    if (selectedProject?.agentId) {
+      setAgentId(selectedProject.agentId);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -115,6 +137,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
         description: description.trim() || undefined,
         status,
         assignee: assignee.trim() || undefined,
+        agentId: agentId || undefined,
         tags: tags.length > 0 ? tags : undefined,
         projectId: projectId || undefined,
       });
@@ -126,6 +149,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
         setStatus('todo');
         setAssignee('');
         setTags([]);
+        setAgentId('');
       }
       
       setTagInput('');
@@ -145,6 +169,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
       setStatus('todo');
       setAssignee('');
       setTags([]);
+      setAgentId('');
     }
     setTagInput('');
     onOpenChange(false);
@@ -206,7 +231,7 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
 
           <div className="space-y-2">
             <Label htmlFor="project">Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
+            <Select value={projectId} onValueChange={handleProjectChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
@@ -218,6 +243,28 @@ export function TaskModal({ open, onOpenChange, task, onSubmit, defaultProjectId
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="agent">Agent</Label>
+            <Select
+              value={agentId}
+              onValueChange={setAgentId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              Defaults to the project's agent, but you can override it
+            </p>
           </div>
 
           <div className="space-y-2">

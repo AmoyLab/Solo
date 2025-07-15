@@ -10,6 +10,8 @@ type Task struct {
 	Description string    `json:"description"`
 	Status      string    `json:"status"`
 	Assignee    string    `json:"assignee"`
+	AgentID     *string   `json:"agent_id,omitempty"`
+	Agent       *Agent    `json:"agent,omitempty"`
 	Tags        []string  `json:"tags"`
 	ProjectID   string    `json:"project_id"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -21,6 +23,7 @@ type CreateTaskRequest struct {
 	Description string   `json:"description"`
 	Status      string   `json:"status"`
 	Assignee    string   `json:"assignee"`
+	AgentID     *string  `json:"agent_id,omitempty"`
 	Tags        []string `json:"tags"`
 	ProjectID   string   `json:"project_id"`
 }
@@ -30,6 +33,7 @@ type UpdateTaskRequest struct {
 	Description string   `json:"description"`
 	Status      string   `json:"status"`
 	Assignee    string   `json:"assignee"`
+	AgentID     *string  `json:"agent_id,omitempty"`
 	Tags        []string `json:"tags"`
 	ProjectID   string   `json:"project_id"`
 }
@@ -40,6 +44,8 @@ type TaskResponse struct {
 	Description string    `json:"description"`
 	Status      string    `json:"status"`
 	Assignee    string    `json:"assignee"`
+	AgentID     *string   `json:"agent_id,omitempty"`
+	Agent       *Agent    `json:"agent,omitempty"`
 	Tags        []string  `json:"tags"`
 	ProjectID   string    `json:"project_id"`
 	CreatedAt   time.Time `json:"created_at"`

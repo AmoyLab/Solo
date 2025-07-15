@@ -132,6 +132,7 @@ export function useTasks() {
         description: newTask.description,
         status: newTask.status,
         assignee: newTask.assignee,
+        agentId: newTask.agentId,
         tags: newTask.tags,
         projectId: newTask.projectId,
       });
@@ -157,6 +158,7 @@ export function useTasks() {
         description: updates.description,
         status: updates.status,
         assignee: updates.assignee,
+        agentId: updates.agentId,
         tags: updates.tags,
       });
       

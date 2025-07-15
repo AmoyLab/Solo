@@ -32,6 +32,7 @@ export function useProjects() {
         name: projectData.name,
         directory: projectData.directory,
         description: projectData.description,
+        agentId: projectData.agentId,
       });
       setProjects((prevProjects) => [...prevProjects, createdProject]);
       return createdProject;
@@ -47,6 +48,7 @@ export function useProjects() {
         name: updates.name,
         directory: updates.directory,
         description: updates.description,
+        agentId: updates.agentId,
       });
       
       setProjects((prevProjects) =>

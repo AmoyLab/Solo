@@ -73,6 +73,7 @@ function App() {
     description?: string;
     status: 'todo' | 'inprogress' | 'inreview' | 'done' | 'cancelled';
     assignee?: string;
+    agentId?: string;
     tags?: string[];
     projectId?: string;
   }) => {
@@ -95,6 +96,7 @@ function App() {
     name: string;
     directory: string;
     description?: string;
+    agentId?: string;
   }) => {
     if (editingProject) {
       await updateProject(editingProject.id, projectData);
@@ -246,6 +248,7 @@ function App() {
         task={editingTask || undefined}
         onSubmit={handleTaskSubmit}
         defaultProjectId={defaultProjectId}
+        projects={projects}
       />
 
       {/* Task Details Drawer */}

@@ -9,6 +9,8 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   assignee?: string;
+  agentId?: string;
+  agent?: import('@/types/project').Agent;
   createdAt: Date;
   updatedAt: Date;
   dueDate?: Date;
